@@ -18,6 +18,8 @@ You might otherwise use the [exe](https://github.com/cheuble/NSScreenshotMaker/r
 * Push to the branch: `git push origin feature`
 * Submit a pull request
 ## History
+* 1.0.1
+    * Fixed a bug regarding thumbnails being too large
 * 1.0.0
     * Initial release
 ## License
