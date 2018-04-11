@@ -75,7 +75,7 @@ def processFile(fileName, key, titleID):
 	outputImage = io.BytesIO()
 	thumbnail   = io.BytesIO()
 	resizeImage(fileName, 1280, 720).save(inputImage, "JPEG", quality = 100) #The screenshots must have a size of 1280x720
-	resizeImage(fileName, 320,  180).save(thumbnail,  "JPEG", quality = 100) #The thumbnails (at least on my screenshots) have a size of 320x180
+	resizeImage(fileName, 320,  180).save(thumbnail,  "JPEG", quality = 40)  #The thumbnails (at least on my screenshots) have a size of 320x180
 	makerNoteZero  = b"\x00\x00\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x10\x00" + bytes.fromhex(titleID)
 	timestamp = date.strftime("%Y:%m:%d %H:%M:%S")
 	exifData = piexif.dump(createJPEGExif(piexif.load(inputImage.getvalue()), makerNoteZero, timestamp, thumbnail.getvalue()))
