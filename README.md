@@ -1,6 +1,6 @@
 # NSScreenshotMaker
 NSScreenshotMaker is a tool that will allow you to sign images for the Nintendo Switch. The Switch has an album function to view your screenshots, but it can't read images you put yourself on the SD card.  
-This tool's purpose is to sign any image so the Switch can read it. I don't really see any use for it, but eh, some people want it ¯\_(ツ)_/¯
+This tool's purpose is to sign any image so the Switch can read it. I don't really see any use for it, but eh, some people want it ¯\\_(ツ)_/¯
 ## Requirements
 * The Nintendo Switch capsrv screenshot HMAC secret key
 * [Python3](https://www.python.org/downloads/)
