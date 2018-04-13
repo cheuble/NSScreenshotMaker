@@ -16,8 +16,9 @@ import io
 import hmac
 import piexif
 import binascii
+from argparse import ArgumentParser
 from PIL import Image
-from sys import argv, exit
+from sys import exit
 from hashlib import sha256
 from datetime import datetime
 
@@ -25,14 +26,6 @@ from datetime import datetime
 #There's probably a better way to do it, like using a different library, but eh, it works™ ¯\_(ツ)_/¯
 #From StackOverflow (Monkey Patching): https://stackoverflow.com/questions/10429547/how-to-change-a-function-in-existing-3rd-party-library-in-python
 piexif._dump._get_thumbnail = lambda jpeg: jpeg #Return it as it is, no need to modify it.
-	
-def printHelp():
-	print("Nintendo Switch Screenshot Maker by cheuble")
-	print("Usage: " + argv[0] + " [options]")
-	print("Options:")
-	print("-h | --help				Prints this help")
-	print("-k | --key				Manually sets the key (instead of loading it form key.bin)")
-	print("-t | --titleid				Manually sets the Title ID of the game (Default: Home Menu)")
 
 #https://stackoverflow.com/questions/44231209/resize-rectangular-image-to-square-keeping-ratio-and-fill-background-with-black
 def resizeImage(path, sizeX, sizeY):
@@ -86,40 +79,35 @@ def processFile(fileName, key, titleID):
 		file.write(outputBytes)
 	
 if __name__ == "__main__":
-	key = b"\x00"
-	titleId = "57B4628D2267231D57E0FC1078C0596D" #Default TitleID: Home Menu
-	for i in range(len(argv)):
-		if argv[i] == "--help" or argv[i] == "-h":
-			printHelp()
-			exit(0)
-		elif argv[i] == "--key" or argv[i] == "-k":
-			if i + 1 < len(argv):
-				try:
-					key = bytes.fromhex(argv[i+1])
-				except ValueError:
-					print("Error! Invalid Key!\n\n")
-					printHelp()
-					exit(1)
-				i+=1
-		elif argv[i] == "--titleid" or argv[i] == "-t":
-			if i + 1 < len(argv):
-				if len(argv[i+1]) == 0x20:
-					titleId = argv[i+1].upper()
-					i+=1
-	#Get the "Nintendo Switch capsrv screenshot HMAC secret" key on SciresM's pastebin
-	if len(key) != 0x20:
+	parser = ArgumentParser(description='Create usable screenshots to be shown on the Nintendo Switch.')
+	#Get the Nintendo Switch capsrv screenshot HMAC secret" key on SciresM's pastebin
+	parser.add_argument('-k', '--key', help='Set the HMAC key (instead of loading it from key.bin)')
+	#Default TitleID: Home Menu
+	parser.add_argument('-t', '--titleid', default="57B4628D2267231D57E0FC1078C0596D", help='Set the title ID of the app (default is HOME menu)')
+	args = parser.parse_args()
+
+	if args.key:
+		try:
+			key = bytes.fromhex(args.key)
+			if len(key) != 0x20:
+				print("Error! Invalid Key!")
+				exit(1)
+		except ValueError:
+			print("Error! Invalid Key!")
+			exit(1)
+	else:
 		if not os.path.isfile("key.bin"):
-			print("Error! You need to provide the Nintendo Switch capsrv screenshot HMAC secret!\n\n")
-			printHelp()
+			print("Error! You need to provide the Nintendo Switch capsrv screenshot HMAC secret!")
 			exit(1)
 		with open("key.bin", "rb") as file:
 			key = file.read(0x20)
+
 	print("Key: " + str(binascii.hexlify(key))[2:66].upper())
 	os.makedirs("input", exist_ok=True)
 	if len(os.listdir("input")) == 0:
-		print("Input folder is empty!\n\n")
+		print("Input folder is empty!")
 		exit(1)
 	for fileName in os.listdir("input"):
 		print("Processing file " + fileName)
-		processFile("input/" + fileName, key, titleId)
+		processFile("input/" + fileName, key, args.titleid)
 	print("Done!")
