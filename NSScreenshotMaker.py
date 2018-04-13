@@ -16,11 +16,21 @@ import io
 import hmac
 import piexif
 import binascii
-from argparse import ArgumentParser
-from PIL import Image
 from sys import exit
+from PIL import Image
 from hashlib import sha256
 from datetime import datetime
+from argparse import ArgumentParser
+
+#Fixing the "archive bit" that causes problems to some users
+try:
+	import win32file
+	import win32con
+	def removeArchiveAttribute(fileName):
+		win32file.SetFileAttributes(fileName, win32file.GetFileAttributes(fileName) & ~win32con.FILE_ATTRIBUTE_ARCHIVE)
+except ImportError:
+	def removeArchiveAttribute(fileName):
+		pass
 
 #From my testing, piexif's _dump._get_thumbnail() returns an invalid thumbnail for the Switch (it shows a "?"). What we can do though is replace it with this dirty fix.
 #There's probably a better way to do it, like using a different library, but eh, it works™ ¯\_(ツ)_/¯
@@ -51,10 +61,10 @@ def createJPEGExif(exifDict, makerNote, timestamp, thumbnail):
 		"thumbnail": thumbnail
 	})
 	return newExifDict
-	
-def processFile(fileName, key, titleID):
+
+def processFile(fileName, key, titleID, baseOutputFolder):
 	date = datetime.utcnow()
-	outputFolder = date.strftime("SD/Nintendo/Album/%Y/%m/%d/")
+	outputFolder = baseOutputFolder + date.strftime("/Nintendo/Album/%Y/%m/%d/")
 	ind = 0
 	while os.path.isfile(outputFolder + date.strftime("%Y%m%d%H%M%S") + "{:02d}".format(ind) + "-" + titleID + ".jpg"):
 		ind += 1
@@ -77,6 +87,8 @@ def processFile(fileName, key, titleID):
 	outputBytes = outputImage.getvalue().replace(makerNoteZero, makerNote)
 	with open(outputPath, "wb") as file:
 		file.write(outputBytes)
+	removeArchiveAttribute(baseOutputFolder)
+	removeArchiveAttribute(outputPath)
 	
 if __name__ == "__main__":
 	parser = ArgumentParser(description='Create usable screenshots to be shown on the Nintendo Switch.')
@@ -84,6 +96,8 @@ if __name__ == "__main__":
 	parser.add_argument('-k', '--key', help='Set the HMAC key (instead of loading it from key.bin)')
 	#Default TitleID: Home Menu
 	parser.add_argument('-t', '--titleid', default="57B4628D2267231D57E0FC1078C0596D", help='Set the title ID of the app (default is HOME menu)')
+	parser.add_argument('-i', '--input',  default='input', help='Set the input folder')
+	parser.add_argument('-o', '--output', default='SD',    help='Set the output folder')
 	args = parser.parse_args()
 
 	if args.key:
@@ -102,12 +116,16 @@ if __name__ == "__main__":
 		with open("key.bin", "rb") as file:
 			key = file.read(0x20)
 
-	print("Key: " + str(binascii.hexlify(key))[2:66].upper())
-	os.makedirs("input", exist_ok=True)
-	if len(os.listdir("input")) == 0:
+	if sha256(key).hexdigest() != "e9735dae330300b8bb4b5892c8178f5d57daa32d7b5ef5d15f14491800ce4750": #SHA256 of the key
+		print("Error! Invalid Key!")
+		exit(1)
+
+	os.makedirs(args.input, exist_ok=True)
+	if len(os.listdir(args.input)) == 0:
 		print("Input folder is empty!")
 		exit(1)
-	for fileName in os.listdir("input"):
+	for fileName in os.listdir(args.input):
 		print("Processing file " + fileName)
-		processFile("input/" + fileName, key, args.titleid)
+		processFile(args.input + "/" + fileName, key, args.titleid, args.output)
+
 	print("Done!")
